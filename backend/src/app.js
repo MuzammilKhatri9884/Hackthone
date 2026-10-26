@@ -4,6 +4,7 @@ import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
 import mongoose from "mongoose";
 import { api } from "./routes/api.js";
+import { connectDatabase } from "./services/database.js";
 export const app = express();
 app.disable("x-powered-by");
 app.use(helmet());
@@ -39,6 +40,19 @@ app.use(
     legacyHeaders: false,
   }),
 );
+app.use((req, res, next) => {
+  if (
+    !process.env.JWT_SECRET ||
+    process.env.JWT_SECRET.length < 32 ||
+    process.env.JWT_SECRET.startsWith("replace-")
+  )
+    return next(
+      Object.assign(new Error("Set a JWT_SECRET of at least 32 characters."), {
+        status: 500,
+      }),
+    );
+  connectDatabase().then(() => next(), next);
+});
 app.get("/api/health", (req, res) =>
   res.status(mongoose.connection.readyState === 1 ? 200 : 503).json({
     status:
@@ -75,3 +89,4 @@ app.use((err, req, res, next) => {
   }
   res.status(status).json({ message, details });
 });
+export default app;

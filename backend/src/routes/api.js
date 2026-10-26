@@ -81,6 +81,35 @@ const getEmployeeFilter = (req) =>
     : req.query.department
       ? { department: req.query.department }
       : {};
+api.get("/bootstrap", async (req, res, next) => {
+  if (!(await Settings.exists({ _id: "company" })))
+    return res.json({ setup: true });
+  auth(req, res, (error) => {
+    if (error?.status === 401) return res.json({ setup: false });
+    if (error) return next(error);
+    const load = async () => {
+      const user = safeUser(req.user);
+      let company;
+      if (!user.mustChangePassword) {
+        const [s, leaveTypes] = await Promise.all([
+          settings(),
+          LeaveType.find().lean(),
+        ]);
+        company = {
+          companyName: s.companyName,
+          officeStart: s.officeStart,
+          graceMinutes: s.graceMinutes,
+          halfDayHours: s.halfDayHours,
+          weekends: s.weekends,
+          timezone: s.timezone,
+          leaveTypes,
+        };
+      }
+      res.json({ setup: false, user, ...(company ? { company } : {}) });
+    };
+    load().catch(next);
+  });
+});
 api.get("/setup", async (req, res) =>
   res.json({ required: !(await Settings.exists({ _id: "company" })) }),
 );

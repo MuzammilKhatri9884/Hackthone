@@ -38,8 +38,8 @@ export async function assertWorkday(id, date, rules) {
     "You have approved leave on this date.",
   );
 }
-export async function attendanceRows(employees, start, end) {
-  const rules = await settings();
+export async function attendanceRows(employees, start, end, configuredRules) {
+  const rules = configuredRules || (await settings());
   const today = localParts(new Date(), rules.timezone).date;
   const ids = employees.map((e) => e._id);
   const [records, leaves, holidays] = await Promise.all([

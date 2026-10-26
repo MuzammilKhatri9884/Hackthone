@@ -49,13 +49,17 @@ export function summarizePerformance(rows) {
   };
 }
 
-export async function monthlyPerformance(employees, month) {
+export async function monthlyPerformance(
+  employees,
+  month,
+  { rows: preloadedRows, rules: preloadedRules } = {},
+) {
   assert(
     typeof month === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(month),
     422,
     "Choose a valid performance month (YYYY-MM).",
   );
-  const s = await settings(),
+  const s = preloadedRules || (await settings()),
     today = localParts(new Date(), s.timezone).date;
   const start = month + "-01",
     end = new Date(
@@ -64,8 +68,10 @@ export async function monthlyPerformance(employees, month) {
       .toISOString()
       .slice(0, 10);
   const [rows, todayRows, holiday] = await Promise.all([
-    attendanceRows(employees, start, end),
-    attendanceRows(employees, today, today),
+    preloadedRows || attendanceRows(employees, start, end, s),
+    preloadedRows && today >= start && today <= end
+      ? preloadedRows.filter((row) => row.date === today)
+      : attendanceRows(employees, today, today, s),
     Holiday.exists({ date: today }),
   ]);
   const grouped = new Map();

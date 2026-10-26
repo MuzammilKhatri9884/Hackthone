@@ -31,7 +31,9 @@ export async function auth(req, res, next) {
     req.user = user;
     if (
       user.mustChangePassword &&
-      !["/auth/me", "/auth/password", "/auth/logout"].includes(req.path)
+      !["/auth/me", "/auth/password", "/auth/logout", "/bootstrap"].includes(
+        req.path,
+      )
     )
       assert(false, 403, "Change your temporary password before continuing.");
     next();

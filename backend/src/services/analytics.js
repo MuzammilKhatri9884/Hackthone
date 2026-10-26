@@ -52,7 +52,7 @@ export async function analytics(user, filters = {}) {
     filter.department = filters.department;
   const employees = await Employee.find(filter).lean(),
     ids = employees.map((e) => e._id);
-  const rows = await attendanceRows(employees, start, end);
+  const rows = await attendanceRows(employees, start, end, s);
   const [leaves, runs, depts, designations] = await Promise.all([
     Leave.find({
       employee_id: { $in: ids },
@@ -80,7 +80,7 @@ export async function analytics(user, filters = {}) {
   const dayRows =
     start <= today && end >= today
       ? rows.filter((a) => a.date === today)
-      : await attendanceRows(employees, today, today);
+      : await attendanceRows(employees, today, today, s);
   const tally = (status) =>
     rows.filter((a) => a.displayStatus === status).length;
   const onLeave = rows.reduce(
@@ -199,6 +199,12 @@ export async function analytics(user, filters = {}) {
   const performance = await monthlyPerformance(
     employees,
     filters.month || end.slice(0, 7),
+    {
+      rules: s,
+      ...(start === (filters.month || end.slice(0, 7)) + "-01" && end === today
+        ? { rows }
+        : {}),
+    },
   );
   const yearExits = employees.filter(
     (e) => e.exitDate && e.exitDate >= yearStart && e.exitDate <= end,
